@@ -8,9 +8,10 @@ const port = process.env.PORT || 8000;
 
 // midleware
 0;
+app.use(express.json({ limit: '30mb', extended: true }))
+app.use(express.urlencoded({ limit: '30mb', extended: true }))
 app.use(cors());
 app.use(express.json());
-
 // connecte
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ossg7.mongodb.net/School_db?retryWrites=true&w=majority`;
 
@@ -27,7 +28,7 @@ async function run() {
     const teachersCollection = database.collection("teachers");
     const usersCollection = database.collection("users");
     const adminCollection = database.collection("admin");
-
+    const pdfCollection = database.collection("pdf");
     // is admin
     app.get("/users/:email", async (req, res) => {
       const email = req.params.email;
@@ -47,7 +48,7 @@ async function run() {
       console.log(result);
       res.json(result);
     });
- 
+
     // user upsert
     app.put("/users", async (req, res) => {
       const user = req.body;
@@ -61,38 +62,31 @@ async function run() {
       );
       res.json(result);
     });
- 
+
     // set admin
     app.put("/users/admin", async (req, res) => {
       const user = req.body;
-      console.log('put', user);
+      console.log("put", user);
       const filter = { email: user.email };
       const updateDoc = { $set: { role: "admin" } };
       const result = await usersCollection.updateOne(filter, updateDoc);
       res.json(result);
     });
-    // total order API
-    app.get("/totalOrder", async (req, res) => {
-      const allOrder = ordersCollection.find({});
-      const result = await allOrder.toArray();
-      res.send(result);
-    });
-    //specific order
-    app.get("/orders", async (req, res) => {
-      const cursor = ordersCollection.find({ email: req.query.email });
-      const order = await cursor.toArray();
-      res.send(order);
-    });
-    // order delete API
-    app.delete("/totalOrder/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: ObjectId(id) };
-      const result = await ordersCollection.deleteOne(query);
+  
+ 
+    //post pdf
+    app.post("/addPdf", async (req, res) => {
+      const newPdf = req.body;
+      const result = await pdfCollection.insertOne(newPdf);
       res.json(result);
     });
 
-
-   
+    //get pdf
+    app.get("/getPdf", async (req, res) => {
+      const coursor = pdfCollection.find({});
+      const pdf = await coursor.toArray();
+      res.send(pdf);
+    });
 
     // Add new Image
     app.post("/addImage", async (req, res) => {
@@ -108,17 +102,12 @@ async function run() {
       res.json(result);
     });
 
-    
-
-   
-
     // makeAdmin
     app.post("/makeAdmin", async (req, res) => {
       const admin = req.body;
       const result = await adminCollection.insertOne(admin);
       res.json(result);
     });
-
 
     // get Image
     app.get("/getImage", async (req, res) => {
@@ -140,7 +129,6 @@ async function run() {
       const result = await adminCollection.deleteOne(query);
       res.json(result);
     });
-
 
     // get Admin
     app.get("/getAdmin", async (req, res) => {
